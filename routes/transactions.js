@@ -11,6 +11,7 @@ const { verifyToken, verifyAdmin } = require('../middleware/verifyToken');
 // Create Stripe checkout session
 router.post('/create-checkout-session', verifyToken, async (req, res) => {
   try {
+    
     const { ebookId } = req.body;
     const ebook = await Ebook.findById(ebookId);
     if (!ebook) return res.status(404).json({ message: 'Ebook not found' });
