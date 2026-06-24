@@ -3,7 +3,8 @@ const router = express.Router();
 let stripe;
 if (process.env.STRIPE_SECRET_KEY) {
   stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-}const Transaction = require('../models/Transaction');
+}
+const Transaction = require('../models/Transaction');
 const Ebook = require('../models/Ebook');
 const User = require('../models/User');
 const { verifyToken, verifyAdmin } = require('../middleware/verifyToken');
@@ -11,7 +12,6 @@ const { verifyToken, verifyAdmin } = require('../middleware/verifyToken');
 // Create Stripe checkout session
 router.post('/create-checkout-session', verifyToken, async (req, res) => {
   try {
-    
     const { ebookId } = req.body;
     const ebook = await Ebook.findById(ebookId);
     if (!ebook) return res.status(404).json({ message: 'Ebook not found' });
@@ -45,6 +45,7 @@ router.post('/create-checkout-session', verifyToken, async (req, res) => {
 });
 
 // Verify payment and update records
+// FIX: fetch writerEmail from DB — it doesn't exist on Ebook model
 router.post('/verify-payment', verifyToken, async (req, res) => {
   try {
     const { sessionId, ebookId } = req.body;
@@ -63,11 +64,14 @@ router.post('/verify-payment', verifyToken, async (req, res) => {
       return res.json({ message: 'Already purchased' });
     }
 
-    // Update ebook sales
+    // FIX: fetch writer's email from DB since Ebook model has no writerEmail field
+    const writerUser = await User.findById(ebook.writer).select('email');
+
+    // Update ebook sales count
     ebook.totalSales += 1;
     await ebook.save();
 
-    // Update user purchased ebooks
+    // Add to user's purchased list
     user.purchasedEbooks.push(ebookId);
     await user.save();
 
@@ -79,7 +83,7 @@ router.post('/verify-payment', verifyToken, async (req, res) => {
       buyer: req.user.id,
       buyerEmail: req.user.email,
       writer: ebook.writer,
-      writerEmail: ebook.writerEmail,
+      writerEmail: writerUser?.email || '',   // FIX: now correctly populated
       amount: ebook.price,
       stripeSessionId: sessionId,
       status: 'completed',
@@ -132,9 +136,6 @@ router.get('/all', verifyToken, verifyAdmin, async (req, res) => {
 // Get analytics (admin)
 router.get('/analytics', verifyToken, verifyAdmin, async (req, res) => {
   try {
-    const User = require('../models/User');
-    const Ebook = require('../models/Ebook');
-
     const totalUsers = await User.countDocuments({ role: 'user' });
     const totalWriters = await User.countDocuments({ role: 'writer' });
     const totalEbooks = await Ebook.countDocuments({ status: 'published' });
@@ -144,7 +145,6 @@ router.get('/analytics', verifyToken, verifyAdmin, async (req, res) => {
 
     const totalRevenue = revenueData[0]?.totalRevenue || 0;
 
-    // Monthly sales
     const monthlySales = await Transaction.aggregate([
       {
         $group: {
@@ -156,7 +156,6 @@ router.get('/analytics', verifyToken, verifyAdmin, async (req, res) => {
       { $sort: { '_id.year': 1, '_id.month': 1 } }
     ]);
 
-    // Genre distribution
     const genreData = await Ebook.aggregate([
       { $match: { status: 'published' } },
       { $group: { _id: '$genre', count: { $sum: 1 } } }

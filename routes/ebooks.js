@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Ebook = require('../models/Ebook');
+const User = require('../models/User');
 const { verifyToken, verifyAdmin, verifyWriter } = require('../middleware/verifyToken');
 
 // Get all published ebooks (public)
@@ -98,10 +99,15 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Create ebook (writer)
+// Create ebook (writer) — FIX: fetch writerName from DB so it's always accurate
 router.post('/', verifyToken, verifyWriter, async (req, res) => {
   try {
     const { title, description, content, price, genre, coverImage } = req.body;
+
+    // Fetch writer's actual name from DB (don't trust JWT or body for name)
+    const writer = await User.findById(req.user.id).select('name');
+    if (!writer) return res.status(404).json({ message: 'Writer not found' });
+
     const ebook = new Ebook({
       title,
       description,
@@ -110,7 +116,7 @@ router.post('/', verifyToken, verifyWriter, async (req, res) => {
       genre,
       coverImage,
       writer: req.user.id,
-      writerName: req.user.name || req.body.writerName,
+      writerName: writer.name,
     });
     await ebook.save();
     res.status(201).json(ebook);
