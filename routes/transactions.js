@@ -103,9 +103,9 @@ router.delete('/my-purchases/:ebookId', verifyToken, async (req, res) => {
     // Delete the transaction record
     await Transaction.deleteOne({ buyer: buyerId, ebook: ebookId });
 
-    // Remove from user's purchasedEbooks array
+    // Remove from user's purchasedEbooks array AND bookmarks
     await User.findByIdAndUpdate(buyerId, {
-      $pull: { purchasedEbooks: ebookId }
+      $pull: { purchasedEbooks: ebookId, bookmarks: ebookId }
     });
 
     res.json({ message: 'Purchase removed successfully' });
