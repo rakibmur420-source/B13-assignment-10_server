@@ -21,10 +21,7 @@ router.post('/create-checkout-session', verifyToken, async (req, res) => {
       line_items: [{
         price_data: {
           currency: 'usd',
-          product_data: {
-            name: ebook.title,
-            images: [ebook.coverImage],
-          },
+          product_data: { name: ebook.title, images: [ebook.coverImage] },
           unit_amount: Math.round(ebook.price * 100),
         },
         quantity: 1,
@@ -32,10 +29,7 @@ router.post('/create-checkout-session', verifyToken, async (req, res) => {
       mode: 'payment',
       success_url: `${process.env.CLIENT_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}&ebook_id=${ebookId}`,
       cancel_url: `${process.env.CLIENT_URL}/ebooks/${ebookId}`,
-      metadata: {
-        ebookId: ebookId.toString(),
-        buyerId: req.user.id.toString(),
-      }
+      metadata: { ebookId: ebookId.toString(), buyerId: req.user.id.toString() }
     });
 
     res.json({ url: session.url });
@@ -44,12 +38,10 @@ router.post('/create-checkout-session', verifyToken, async (req, res) => {
   }
 });
 
-// Verify payment and update records
-// FIX: fetch writerEmail from DB — it doesn't exist on Ebook model
+// Verify payment
 router.post('/verify-payment', verifyToken, async (req, res) => {
   try {
     const { sessionId, ebookId } = req.body;
-
     const session = await stripe.checkout.sessions.retrieve(sessionId);
     if (session.payment_status !== 'paid') {
       return res.status(400).json({ message: 'Payment not completed' });
@@ -58,24 +50,18 @@ router.post('/verify-payment', verifyToken, async (req, res) => {
     const ebook = await Ebook.findById(ebookId);
     if (!ebook) return res.status(404).json({ message: 'Ebook not found' });
 
-    // Check if already purchased
     const user = await User.findById(req.user.id);
     if (user.purchasedEbooks.includes(ebookId)) {
       return res.json({ message: 'Already purchased' });
     }
 
-    // FIX: fetch writer's email from DB since Ebook model has no writerEmail field
     const writerUser = await User.findById(ebook.writer).select('email');
-
-    // Update ebook sales count
     ebook.totalSales += 1;
     await ebook.save();
 
-    // Add to user's purchased list
     user.purchasedEbooks.push(ebookId);
     await user.save();
 
-    // Create transaction record
     const transaction = new Transaction({
       type: 'purchase',
       ebook: ebookId,
@@ -83,7 +69,7 @@ router.post('/verify-payment', verifyToken, async (req, res) => {
       buyer: req.user.id,
       buyerEmail: req.user.email,
       writer: ebook.writer,
-      writerEmail: writerUser?.email || '',   // FIX: now correctly populated
+      writerEmail: writerUser?.email || '',
       amount: ebook.price,
       stripeSessionId: sessionId,
       status: 'completed',
@@ -108,7 +94,7 @@ router.get('/my-purchases', verifyToken, async (req, res) => {
   }
 });
 
-// Get writer's sales history
+// Get writer's sales
 router.get('/my-sales', verifyToken, async (req, res) => {
   try {
     const transactions = await Transaction.find({ writer: req.user.id })
@@ -133,16 +119,18 @@ router.get('/all', verifyToken, verifyAdmin, async (req, res) => {
   }
 });
 
-// Get analytics (admin)
+// Analytics (admin) — FIX: totalUsers now counts ALL non-admin users (readers + writers)
 router.get('/analytics', verifyToken, verifyAdmin, async (req, res) => {
   try {
-    const totalUsers = await User.countDocuments({ role: 'user' });
+    // FIX: count all non-admin users to match User Management page
+    const totalUsers = await User.countDocuments({ role: { $ne: 'admin' } });
     const totalWriters = await User.countDocuments({ role: 'writer' });
+    const totalReaders = await User.countDocuments({ role: 'user' });
     const totalEbooks = await Ebook.countDocuments({ status: 'published' });
+
     const revenueData = await Transaction.aggregate([
       { $group: { _id: null, totalRevenue: { $sum: '$amount' } } }
     ]);
-
     const totalRevenue = revenueData[0]?.totalRevenue || 0;
 
     const monthlySales = await Transaction.aggregate([
@@ -161,7 +149,15 @@ router.get('/analytics', verifyToken, verifyAdmin, async (req, res) => {
       { $group: { _id: '$genre', count: { $sum: 1 } } }
     ]);
 
-    res.json({ totalUsers, totalWriters, totalEbooks, totalRevenue, monthlySales, genreData });
+    res.json({
+      totalUsers,      // All non-admin (readers + writers) — matches User Management
+      totalWriters,
+      totalReaders,
+      totalEbooks,
+      totalRevenue,
+      monthlySales,
+      genreData,
+    });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
