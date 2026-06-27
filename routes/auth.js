@@ -74,6 +74,8 @@ router.post('/login', async (req, res) => {
 });
 
 // Google Login
+// - New users: save with the role they chose (reader/writer)
+// - Existing users: keep their existing role from DB (don't overwrite)
 router.post('/google', async (req, res) => {
   try {
     const { name, email, photoURL, role } = req.body;
@@ -81,13 +83,22 @@ router.post('/google', async (req, res) => {
     let user = await User.findOne({ email });
 
     if (!user) {
+      // New Google user — use the role they selected on the login/register page
       user = new User({
         name,
         email,
-        photoURL,
+        photoURL: photoURL || '',
         role: role || 'user',
       });
       await user.save();
+    } else {
+      // Existing user — update photoURL if changed, but keep their existing role
+      let updated = false;
+      if (photoURL && user.photoURL !== photoURL) {
+        user.photoURL = photoURL;
+        updated = true;
+      }
+      if (updated) await user.save();
     }
 
     if (user.isBanned) {
