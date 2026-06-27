@@ -94,6 +94,26 @@ router.get('/my-purchases', verifyToken, async (req, res) => {
   }
 });
 
+// Remove a purchase (delete transaction + remove from purchasedEbooks)
+router.delete('/my-purchases/:ebookId', verifyToken, async (req, res) => {
+  try {
+    const { ebookId } = req.params;
+    const buyerId = req.user.id;
+
+    // Delete the transaction record
+    await Transaction.deleteOne({ buyer: buyerId, ebook: ebookId });
+
+    // Remove from user's purchasedEbooks array
+    await User.findByIdAndUpdate(buyerId, {
+      $pull: { purchasedEbooks: ebookId }
+    });
+
+    res.json({ message: 'Purchase removed successfully' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
 // Get writer's sales
 router.get('/my-sales', verifyToken, async (req, res) => {
   try {
@@ -119,10 +139,9 @@ router.get('/all', verifyToken, verifyAdmin, async (req, res) => {
   }
 });
 
-// Analytics (admin) — FIX: totalUsers now counts ALL non-admin users (readers + writers)
+// Analytics (admin)
 router.get('/analytics', verifyToken, verifyAdmin, async (req, res) => {
   try {
-    // FIX: count all non-admin users to match User Management page
     const totalUsers = await User.countDocuments({ role: { $ne: 'admin' } });
     const totalWriters = await User.countDocuments({ role: 'writer' });
     const totalReaders = await User.countDocuments({ role: 'user' });
@@ -149,15 +168,7 @@ router.get('/analytics', verifyToken, verifyAdmin, async (req, res) => {
       { $group: { _id: '$genre', count: { $sum: 1 } } }
     ]);
 
-    res.json({
-      totalUsers,      // All non-admin (readers + writers) — matches User Management
-      totalWriters,
-      totalReaders,
-      totalEbooks,
-      totalRevenue,
-      monthlySales,
-      genreData,
-    });
+    res.json({ totalUsers, totalWriters, totalReaders, totalEbooks, totalRevenue, monthlySales, genreData });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
