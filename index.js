@@ -16,7 +16,9 @@ app.use(cors({
   origin: [
     process.env.CLIENT_URL,
     'http://localhost:3000',
-    'https://lustrous-klepon-7a3daf.netlify.app'
+    'https://lustrous-klepon-7a3daf.netlify.app',
+    'https://b13-assignment-10-client-myb66zi5a-rakib13.vercel.app',
+    /\.vercel\.app$/,
   ],
   credentials: true
 }));
