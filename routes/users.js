@@ -24,7 +24,7 @@ router.get('/:id', verifyToken, async (req, res) => {
   }
 });
 
-// Update user profile (name, photoURL)
+// Update user profile
 router.patch('/:id', verifyToken, async (req, res) => {
   try {
     const { name, photoURL } = req.body;
@@ -122,8 +122,6 @@ router.get('/:id/purchased', verifyToken, async (req, res) => {
   }
 });
 
-module.exports = router;
-
 // Remove purchased ebook
 router.delete('/:id/purchased/:ebookId', verifyToken, async (req, res) => {
   try {
@@ -136,3 +134,5 @@ router.delete('/:id/purchased/:ebookId', verifyToken, async (req, res) => {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
+
+module.exports = router;
