@@ -7,7 +7,9 @@ const ebookSchema = new mongoose.Schema({
   price: { type: Number, required: true },
   genre: { 
     type: String, 
-    enum: ['Fiction', 'Mystery', 'Romance', 'Sci-Fi', 'Fantasy', 'Horror', 'Biography', 'Self-Help', 'History', 'Other'],
+    enum: ['Fiction', 'Mystery', 'Romance', 'Sci-Fi', 'Fantasy', 'Horror', 'Thriller', 'Adventure', 'Biography', 'Self-Help', 'History', 'Drama', 'Other'],
+
+    
     required: true 
   },
   coverImage: { type: String, required: true },
