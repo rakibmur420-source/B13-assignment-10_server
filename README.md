@@ -9,17 +9,17 @@ Express.js REST API backend for the Fable ebook sharing platform. Handles authen
 https://github.com/rakibmur420-source/B13-assignment-10_client
 
 
-## ✨ Key Features
+##  Key Features
 
-- 🔐 JWT authentication (7-day expiry)
-- 👥 Role-based access control (Reader / Writer / Admin)
-- 📖 Full ebook CRUD with publish/unpublish
-- 💳 Stripe checkout session creation and payment verification
-- 🔖 Bookmark system
-- 📊 Admin analytics (monthly sales, revenue, genre breakdown)
-- 🌍 CORS configured for Vercel frontend
+-  JWT authentication (7-day expiry)
+-  Role-based access control (Reader / Writer / Admin)
+-  Full ebook CRUD with publish/unpublish
+-  Stripe checkout session creation and payment verification
+-  Bookmark system
+-  Admin analytics (monthly sales, revenue, genre breakdown)
+-  CORS configured for Vercel frontend
 
-## 🛣️ API Routes
+##  API Routes
 
 ### Auth
 | Method | Endpoint | Description |
@@ -61,7 +61,7 @@ https://github.com/rakibmur420-source/B13-assignment-10_client
 | GET | `/api/transactions/all` | All transactions (admin) |
 | GET | `/api/transactions/analytics` | Analytics data (admin) |
 
-## 📦 NPM Packages Used
+##  NPM Packages Used
 
 | Package | Purpose |
 |---|---|
@@ -73,7 +73,7 @@ https://github.com/rakibmur420-source/B13-assignment-10_client
 | `cors` | Cross-origin requests |
 | `dotenv` | Environment variables |
 
-## ⚙️ Environment Variables
+##  Environment Variables
 
 Create a `.env` file in the root:
 
@@ -86,7 +86,7 @@ IMGBB_API_KEY=your_imgbb_api_key
 CLIENT_URL=https://b13-assignment-10-client.vercel.app
 ```
 
-## 🚀 Getting Started
+##  Getting Started
 
 ```bash
 # Install dependencies
