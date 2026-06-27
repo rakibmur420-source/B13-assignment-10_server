@@ -123,3 +123,16 @@ router.get('/:id/purchased', verifyToken, async (req, res) => {
 });
 
 module.exports = router;
+
+// Remove purchased ebook
+router.delete('/:id/purchased/:ebookId', verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    user.purchasedEbooks = user.purchasedEbooks.filter(e => e.toString() !== req.params.ebookId);
+    await user.save();
+    res.json({ message: 'Removed from purchases', purchasedEbooks: user.purchasedEbooks });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
